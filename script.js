@@ -1,15 +1,22 @@
 let selectedFormat = null;
 let exampleImage = null;
+let exampleImageLoaded = false;
 let visualImages = [];
 
 document.getElementById('exampleImage').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-        const img = new Image();
-        img.onload = () => {
-            exampleImage = img;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                exampleImage = img;
+                exampleImageLoaded = true;
+                checkReady();
+            };
+            img.src = reader.result;
         };
-        img.src = URL.createObjectURL(file);
+        reader.readAsDataURL(file);
     }
 });
 
@@ -24,22 +31,22 @@ function selectFormat(format) {
 }
 
 function checkReady() {
-    document.getElementById('downloadBtn').disabled = !(selectedFormat && exampleImage && visualImages.length > 0);
+    document.getElementById('downloadBtn').disabled = !(selectedFormat && exampleImageLoaded && visualImages.length > 0);
 }
 
 document.getElementById('downloadBtn').addEventListener('click', () => {
-    if (!selectedFormat || !exampleImage || visualImages.length === 0) return;
+    if (!selectedFormat || !exampleImageLoaded || visualImages.length === 0) return;
 
     const zip = new JSZip();
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-
     const config = getFormatConfig(selectedFormat);
 
     Promise.all(visualImages.map(file => {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
+               
                 canvas.width = config.canvasWidth;
                 canvas.height = config.canvasHeight;
 
@@ -51,7 +58,7 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
 
-                // 예시 비주얼 정확히 캔버스 사이즈 기준으로 합성
+                // 예시 비주얼을 정확히 캔버스 크기에 맞춰서 그리기
                 ctx.drawImage(exampleImage, 0, 0, canvas.width, canvas.height);
 
                 // 비주얼 합성
@@ -60,39 +67,21 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
                 ctx.roundRect(config.visualX, config.visualY, config.visualWidth, config.visualHeight, config.borderRadius);
                 ctx.clip();
 
-                if (selectedFormat === 'biz1') {
-                    const aspectRatioVisual = config.visualWidth / config.visualHeight;
-                    const aspectRatioImg = img.width / img.height;
+                const aspectRatioVisual = config.visualWidth / config.visualHeight;
+                const aspectRatioImg = img.width / img.height;
 
-                    let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+                let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
 
-                    if (aspectRatioImg > aspectRatioVisual) {
-                        sWidth = img.height * aspectRatioVisual;
-                        sx = (img.width - sWidth) / 2;
-                    } else {
-                        sHeight = img.width / aspectRatioVisual;
-                        sy = (img.height - sHeight) / 2;
-                    }
-
-                    ctx.drawImage(img, sx, sy, sWidth, sHeight, config.visualX, config.visualY, config.visualWidth, config.visualHeight);
+                if (aspectRatioImg > aspectRatioVisual) {
+                    sWidth = img.height * aspectRatioVisual;
+                    sx = (img.width - sWidth) / 2;
                 } else {
-                    let targetWidth = config.visualWidth;
-                    let targetHeight = config.visualHeight;
-
-                    let offsetX = 0;
-                    let offsetY = 0;
-
-                    if (img.width / img.height > targetWidth / targetHeight) {
-                        const newWidth = img.height * (targetWidth / targetHeight);
-                        offsetX = (img.width - newWidth) / 2;
-                        ctx.drawImage(img, offsetX, 0, newWidth, img.height, config.visualX, config.visualY, targetWidth, targetHeight);
-                    } else {
-                        const newHeight = img.width * (targetHeight / targetWidth);
-                        offsetY = (img.height - newHeight) / 2;
-                        ctx.drawImage(img, 0, offsetY, img.width, newHeight, config.visualX, config.visualY, targetWidth, targetHeight);
-                    }
+                    sHeight = img.width / aspectRatioVisual;
+                    sy = (img.height - sHeight) / 2;
                 }
 
+                ctx.drawImage(img, sx, sy, sWidth, sHeight, config.visualX, config.visualY, config.visualWidth, config.visualHeight);
+               
                 ctx.restore();
 
                 canvas.toBlob((blob) => {
