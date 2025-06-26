@@ -8,7 +8,6 @@ document.getElementById('exampleImage').addEventListener('change', (e) => {
         const img = new Image();
         img.onload = () => {
             exampleImage = img;
-            checkReady();
         };
         img.src = URL.createObjectURL(file);
     }
@@ -44,36 +43,55 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
                 canvas.width = config.canvasWidth;
                 canvas.height = config.canvasHeight;
 
-                // Biz 1:1 도 포함하여 흰 배경 깔기
-                if (selectedFormat === 'mo2' || selectedFormat === 'biz1') {
+                if (selectedFormat === 'mo2') {
                     ctx.fillStyle = '#fff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 } else {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
 
-                // 예시 비주얼 합성
-                ctx.drawImage(exampleImage, 0, 0, exampleImage.width, exampleImage.height);
+                ctx.drawImage(exampleImage, 0, 0, canvas.width, canvas.height);
 
-                // 비주얼 영역 클리핑
                 ctx.save();
                 ctx.beginPath();
                 ctx.roundRect(config.visualX, config.visualY, config.visualWidth, config.visualHeight, config.borderRadius);
                 ctx.clip();
 
-                let targetWidth = config.visualWidth;
-                let targetHeight = config.visualHeight;
-                let offsetX = 0;
-                let offsetY = 0;
+                if (selectedFormat === 'biz1') {
+                    // Biz 1:1은 비율 강제 변형 없이 cover 방식으로 잘라서 꽉 채움
+                    const aspectRatioVisual = config.visualWidth / config.visualHeight;
+                    const aspectRatioImg = img.width / img.height;
 
-                if (img.width / img.height > targetWidth / targetHeight) {
-                    const newWidth = img.height * (targetWidth / targetHeight);
-                    offsetX = (img.width - newWidth) / 2;
-                    ctx.drawImage(img, offsetX, 0, newWidth, img.height, config.visualX, config.visualY, targetWidth, targetHeight);
+                    let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+
+                    if (aspectRatioImg > aspectRatioVisual) {
+                        // 이미지가 더 넓음 → 좌우 자르기
+                        sWidth = img.height * aspectRatioVisual;
+                        sx = (img.width - sWidth) / 2;
+                    } else {
+                        // 이미지가 더 높음 → 상하 자르기
+                        sHeight = img.width / aspectRatioVisual;
+                        sy = (img.height - sHeight) / 2;
+                    }
+
+                    ctx.drawImage(img, sx, sy, sWidth, sHeight, config.visualX, config.visualY, config.visualWidth, config.visualHeight);
                 } else {
-                    const newHeight = img.width * (targetHeight / targetWidth);
-                    offsetY = (img.height - newHeight) / 2;
-                    ctx.drawImage(img, 0, offsetY, img.width, newHeight, config.visualX, config.visualY, targetWidth, targetHeight);
+                    // Biz 2:1, Mo 2:1 기존 비율 유지 방식
+                    let targetWidth = config.visualWidth;
+                    let targetHeight = config.visualHeight;
+
+                    let offsetX = 0;
+                    let offsetY = 0;
+
+                    if (img.width / img.height > targetWidth / targetHeight) {
+                        const newWidth = img.height * (targetWidth / targetHeight);
+                        offsetX = (img.width - newWidth) / 2;
+                        ctx.drawImage(img, offsetX, 0, newWidth, img.height, config.visualX, config.visualY, targetWidth, targetHeight);
+                    } else {
+                        const newHeight = img.width * (targetHeight / targetWidth);
+                        offsetY = (img.height - newHeight) / 2;
+                        ctx.drawImage(img, 0, offsetY, img.width, newHeight, config.visualX, config.visualY, targetWidth, targetHeight);
+                    }
                 }
 
                 ctx.restore();
