@@ -43,40 +43,39 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
                 canvas.width = config.canvasWidth;
                 canvas.height = config.canvasHeight;
 
+                // 완전 초기화
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
                 if (selectedFormat === 'mo2') {
                     ctx.fillStyle = '#fff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                } else {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
 
+                // 예시 비주얼 정확히 캔버스 사이즈 기준으로 합성
                 ctx.drawImage(exampleImage, 0, 0, canvas.width, canvas.height);
 
+                // 비주얼 합성
                 ctx.save();
                 ctx.beginPath();
                 ctx.roundRect(config.visualX, config.visualY, config.visualWidth, config.visualHeight, config.borderRadius);
                 ctx.clip();
 
                 if (selectedFormat === 'biz1') {
-                    // Biz 1:1은 비율 강제 변형 없이 cover 방식으로 잘라서 꽉 채움
                     const aspectRatioVisual = config.visualWidth / config.visualHeight;
                     const aspectRatioImg = img.width / img.height;
 
                     let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
 
                     if (aspectRatioImg > aspectRatioVisual) {
-                        // 이미지가 더 넓음 → 좌우 자르기
                         sWidth = img.height * aspectRatioVisual;
                         sx = (img.width - sWidth) / 2;
                     } else {
-                        // 이미지가 더 높음 → 상하 자르기
                         sHeight = img.width / aspectRatioVisual;
                         sy = (img.height - sHeight) / 2;
                     }
 
                     ctx.drawImage(img, sx, sy, sWidth, sHeight, config.visualX, config.visualY, config.visualWidth, config.visualHeight);
                 } else {
-                    // Biz 2:1, Mo 2:1 기존 비율 유지 방식
                     let targetWidth = config.visualWidth;
                     let targetHeight = config.visualHeight;
 
