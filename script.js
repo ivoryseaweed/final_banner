@@ -8,6 +8,7 @@ document.getElementById('exampleImage').addEventListener('change', (e) => {
         const img = new Image();
         img.onload = () => {
             exampleImage = img;
+            checkReady();
         };
         img.src = URL.createObjectURL(file);
     }
@@ -43,15 +44,18 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
                 canvas.width = config.canvasWidth;
                 canvas.height = config.canvasHeight;
 
-                if (selectedFormat === 'mo2') {
+                // Biz 1:1 도 포함하여 흰 배경 깔기
+                if (selectedFormat === 'mo2' || selectedFormat === 'biz1') {
                     ctx.fillStyle = '#fff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 } else {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
 
+                // 예시 비주얼 합성
                 ctx.drawImage(exampleImage, 0, 0, exampleImage.width, exampleImage.height);
 
+                // 비주얼 영역 클리핑
                 ctx.save();
                 ctx.beginPath();
                 ctx.roundRect(config.visualX, config.visualY, config.visualWidth, config.visualHeight, config.borderRadius);
@@ -59,7 +63,6 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 
                 let targetWidth = config.visualWidth;
                 let targetHeight = config.visualHeight;
-
                 let offsetX = 0;
                 let offsetY = 0;
 
